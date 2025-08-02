@@ -154,24 +154,29 @@ def delete_user(user_id):
     except Exception:
         return jsonify({"error": "Failed to delete user"}), 500
 
-@app.route('/search', methods=['GET'])
+@app.route('/search', methods=['POST'])
 def search_users():
-    try:
-        name = request.args.get('name')
-        
-        if not name or len(name.strip()) < 2:
-            return jsonify({"error": "Please provide a name (min 2 characters)"}), 400
-        
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("SELECT id, name, email FROM users WHERE name LIKE ?", (f"%{name.strip()}%",))
-        users = [dict(row) for row in cursor.fetchall()]
-        conn.close()
-        
-        return jsonify(users), 200
-        
-    except Exception:
-        return jsonify({"error": "Search failed"}), 500
+    name = request.json.get('name')
+    
+    if not name:
+        return jsonify({"error": "Please provide a name parameter"}), 400
+    
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    
+    cursor.execute('SELECT id, name, email FROM users WHERE name LIKE ?', (f'%{name}%',))
+    rows = cursor.fetchall()
+  
+    users = []
+    for row in rows:
+        users.append({
+            'id': row[0],
+            'name': row[1],
+            'email': row[2]
+        })
+    
+    conn.close()
+    return jsonify(users), 200
 
 @app.route('/login', methods=['POST'])
 def login():
